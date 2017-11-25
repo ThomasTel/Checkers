@@ -6,6 +6,7 @@ const int N = 8;
 const int TAKE_TYPE = 3;
 const int N_DIRS = 5;
 const int delta[][2] = {{-1,-1}, {-1,0}, {-1,1}, {-2,-2}, {-2,2}};
+const string vals = "Bb_wW";
 
 struct Move
 {
@@ -67,9 +68,23 @@ vector<Move> getMoves(int p)
     return moves;
 }
 
-void play(Move& m, bool takeback=false)
+//test takeback
+void play(Move& m, int pre, int taken=0)
 {
-    
+    m.coeff *= t[m.lin][m.col] < 0 ? -1 : 1;
+    m.coeff *= taken > 0 ? -1 : 1;
+    int lin = m.lin + delta[m.dir][0]*m.coeff;
+    int col = m.col + delta[m.dir][1]*m.coeff;
+    t[lin][col] = pre;
+    if(abs(pre) == 1 && (lin == 0 && t[lin][col] > 0 || lin == N-1 && t[lin][col] < 0))
+        t[lin][col] *= 2;
+    t[m.lin][m.col] = 0;
+    if(m.dir >= TAKE_TYPE)
+    {
+        lin -= delta[m.dir][0]/2*m.coeff;
+        col -= delta[m.dir][1]/2*m.coeff;
+        t[lin][col] = taken;
+    }
 }
 
 int f(int p)
@@ -77,25 +92,37 @@ int f(int p)
     
 }
 
+void display()
+{
+    for(int i=0; i<N; i++)
+    {
+        for(int j=0; j<N; j++)
+            cout << vals[t[i][j]+2];
+        cout << endl;
+    }
+    cout << endl;
+}
+
 int main()
 {
     ios_base::sync_with_stdio(false);
-    string p; int n;
-    cin >> p >> n;
+    string x; int n;
+    cin >> x >> n;
     string s[n];
     for(int i=0; i<n; i++)
         cin >> s[i];
-    string vals = "Bb_wW";
     for(int i=0; i<n; i++)
         for(int j=0; j<n; j++)
             for(int k=0; k<vals.size(); k++)
                 if(s[i][j] == vals[k])
                     t[i][j] = k-2;
-    for(int i=0; i<n; i++)
-        cout << s[i] << endl;
-    for(Move move : getMoves(p[0] == 'w' ? 1 : -1))
+    int p = x[0] == 'w' ? 1 : -1;
+    for(int i=0; i<100; i++)
     {
-       cout << move;
+        display();
+        auto moves = getMoves(p * (i%2 ? -1 : 1));
+        auto move = moves[rand()%moves.size()];
+        play(move, t[move.lin][move.col]);
     }
     return 0;
 }
