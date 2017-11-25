@@ -7,6 +7,7 @@ const int TAKE_TYPE = 3;
 const int N_DIRS = 5;
 const int delta[][2] = {{-1,-1}, {-1,0}, {-1,1}, {-2,-2}, {-2,2}};
 const string vals = "Bb_wW";
+const int P_MAX = 4;
 
 struct Move
 {
@@ -87,10 +88,24 @@ void play(Move& m, int pre, int taken=0)
     }
 }
 
-int f(int p)
+int eval(int p)
 {
-    
+    int cnt = 0;
+    for(int i=0; i<N; i++)
+        for(int j=0; j<N; j++)
+            cnt += t[i][j];
+    return cnt / p;
 }
+
+/*int f(int p, int pr)
+{
+    auto moves = getMoves(p);
+    if(pr == P_MAX)
+        return 0;
+    for(auto move : moves)
+    {
+        
+}*/
 
 void display()
 {
@@ -119,8 +134,10 @@ int main()
     int p = x[0] == 'w' ? 1 : -1;
     for(int i=0; i<100; i++)
     {
+        int pp = p * (i%2 ? -1 : 1);
+        cout << eval(pp) << endl;
         display();
-        auto moves = getMoves(p * (i%2 ? -1 : 1));
+        auto moves = getMoves(pp);
         auto move = moves[rand()%moves.size()];
         play(move, t[move.lin][move.col]);
     }
