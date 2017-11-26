@@ -3,12 +3,13 @@
 using namespace std;
 
 const int N = 8;
-const int TAKE_TYPE = 3;
-const int N_DIRS = 5;
-const int delta[][2] = {{-1,-1}, {-1,0}, {-1,1}, {-2,-2}, {-2,2}};
+const int TAKE_TYPE = 2;
+const int N_DIRS = 4;
+const int delta[][2] = {{-1,-1}, {-1,1}, {-2,-2}, {-2,2}};
 const string vals = "Bb_wW";
 const int P_MAX = 4;
 const int NOT_ZERO = 42;
+const int INF = 1e9;
 
 struct Move
 {
@@ -36,11 +37,16 @@ inline bool isIn(int lin, int col)
     return 0 <= lin && lin < N && 0 <= col && col < N;
 }
 
+void newPos(Move& m, int pre, int& lin, int& col)
+{
+    m.coeff *= pre < 0 ? -1 : 1;
+    lin = m.lin + delta[m.dir][0]*m.coeff;
+    col = m.col + delta[m.dir][1]*m.coeff;
+}
+
 bool playable(Move m)
 {
-    m.coeff *= t[m.lin][m.col] < 0 ? -1 : 1;
-    int lin = m.lin + delta[m.dir][0]*m.coeff;
-    int col = m.col + delta[m.dir][1]*m.coeff;
+    int lin, col; newPos(m, t[m.lin][m.col], lin, col);
     if(!isIn(lin, col))
         return false;
     if(t[lin][col] != 0)
@@ -54,6 +60,7 @@ bool playable(Move m)
     return true;
 }
 
+// /!\ game rule: force to take a rival piece if there is a possibility
 vector<Move> getMoves(int p)
 {
     vector<Move> moves;
@@ -72,9 +79,7 @@ vector<Move> getMoves(int p)
 
 int play(Move m, int pre, int taken=0)
 {
-    m.coeff *= pre < 0 ? -1 : 1;
-    int lin = m.lin + delta[m.dir][0]*m.coeff;
-    int col = m.col + delta[m.dir][1]*m.coeff;
+    int lin, col; newPos(m, pre, lin, col);
     t[lin][col] = taken ? 0 : pre;
     if(abs(pre) == 1 && (lin == 0 && t[lin][col] > 0 || lin == N-1 && t[lin][col] < 0))
         t[lin][col] *= 2;
@@ -99,13 +104,18 @@ int eval(int p)
     return cnt / p;
 }
 
-//to test
+int nbExplored;
 pair<int, Move> f(int p, int pr)
 {
+    nbExplored++;
+    //debug
+    if(pr == 1) //P_MAX)
+        return {eval(p), Move()};
     auto moves = getMoves(p);
-    if(pr == P_MAX)
-        return {eval(p), moves[0]};
-    pair<int, Move> best;
+    /*for(auto move : moves)
+        cout << move;
+    cout << endl;*/
+    pair<int, Move> best = {-INF, Move()};
     for(auto move : moves)
     {
         int pre = t[move.lin][move.col];
@@ -123,10 +133,10 @@ void display()
     for(int i=0; i<N; i++)
     {
         for(int j=0; j<N; j++)
-            cout << vals[t[i][j]+2];
-        cout << endl;
+            cerr << vals[t[i][j]+2];
+        cerr << endl;
     }
-    cout << endl;
+    cerr << endl;
 }
 
 int hashT()
@@ -153,17 +163,28 @@ int main()
                 if(s[i][j] == vals[k])
                     t[i][j] = k-2;
     int p = x[0] == 'w' ? 1 : -1;
-    //Move move = f(p, 0).second;
-    for(int i=0; i<100; i++)
+    Move move = f(p, 0).second;
+    cout << 1 << endl;
+    cout << move.lin << " " << move.col << endl;
+    int lin, col; newPos(move, t[move.lin][move.col], lin, col);
+    cout << lin << " " << col << endl;
+    /*for(int i=0; i<10; i++, p*=-1)
+    {
+        display();
+        Move move = f(p, 0).second;
+        play(move, t[move.lin][move.col]);
+    }*/
+    //cerr << nbExplored << endl;
+    /*for(int i=0; i<100; i++)
     {
         int pp = p * (i%2 ? -1 : 1);
         display();
         auto moves = getMoves(pp);
         auto move = moves[rand()%moves.size()];
         int pre = t[move.lin][move.col];
-        int h1 = hashT();
+        //int h1 = hashT();
         int taken = play(move, pre);
-        display();
+        //display();
         play(move, pre, taken);
         int h2 = hashT();
         if(h1 != h2)
@@ -173,6 +194,6 @@ int main()
             return 0;
         }
         play(move, pre);
-    }
+    }*/
     return 0;
 }
