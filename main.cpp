@@ -8,6 +8,7 @@ const int N_DIRS = 5;
 const int delta[][2] = {{-1,-1}, {-1,0}, {-1,1}, {-2,-2}, {-2,2}};
 const string vals = "Bb_wW";
 const int P_MAX = 4;
+const int NOT_ZERO = 42;
 
 struct Move
 {
@@ -69,23 +70,24 @@ vector<Move> getMoves(int p)
     return moves;
 }
 
-//test takeback
-void play(Move& m, int pre, int taken=0)
+int play(Move m, int pre, int taken=0)
 {
-    m.coeff *= t[m.lin][m.col] < 0 ? -1 : 1;
-    m.coeff *= taken > 0 ? -1 : 1;
+    m.coeff *= pre < 0 ? -1 : 1;
     int lin = m.lin + delta[m.dir][0]*m.coeff;
     int col = m.col + delta[m.dir][1]*m.coeff;
-    t[lin][col] = pre;
+    t[lin][col] = taken ? 0 : pre;
     if(abs(pre) == 1 && (lin == 0 && t[lin][col] > 0 || lin == N-1 && t[lin][col] < 0))
         t[lin][col] *= 2;
-    t[m.lin][m.col] = 0;
+    t[m.lin][m.col] = taken ? pre : 0;
+    int r = NOT_ZERO;
     if(m.dir >= TAKE_TYPE)
     {
         lin -= delta[m.dir][0]/2*m.coeff;
         col -= delta[m.dir][1]/2*m.coeff;
+        r = t[lin][col];
         t[lin][col] = taken;
     }
+    return r;
 }
 
 int eval(int p)
@@ -97,15 +99,24 @@ int eval(int p)
     return cnt / p;
 }
 
-/*int f(int p, int pr)
+//to test
+pair<int, Move> f(int p, int pr)
 {
     auto moves = getMoves(p);
     if(pr == P_MAX)
-        return 0;
+        return {eval(p), moves[0]};
+    pair<int, Move> best;
     for(auto move : moves)
     {
-        
-}*/
+        int pre = t[move.lin][move.col];
+        int taken = play(move, pre);
+        pair<int, Move> val = {-f(p*(-1), pr+1).first, move};
+        if(val.first > best.first)
+            best = val;
+        play(move, pre, taken);
+    }
+    return best;
+}
 
 void display()
 {
@@ -116,6 +127,16 @@ void display()
         cout << endl;
     }
     cout << endl;
+}
+
+int hashT()
+{
+    const int M = 222222227;
+    int r = 0;
+    for(int i=0, h=1; i<N; i++)
+        for(int j=0; j<N; j++, h=(h*vals.size())%M)
+            r = (r + (t[i][j]+2)*h) % M;
+    return r;
 }
 
 int main()
@@ -132,14 +153,26 @@ int main()
                 if(s[i][j] == vals[k])
                     t[i][j] = k-2;
     int p = x[0] == 'w' ? 1 : -1;
+    //Move move = f(p, 0).second;
     for(int i=0; i<100; i++)
     {
         int pp = p * (i%2 ? -1 : 1);
-        cout << eval(pp) << endl;
         display();
         auto moves = getMoves(pp);
         auto move = moves[rand()%moves.size()];
-        play(move, t[move.lin][move.col]);
+        int pre = t[move.lin][move.col];
+        int h1 = hashT();
+        int taken = play(move, pre);
+        display();
+        play(move, pre, taken);
+        int h2 = hashT();
+        if(h1 != h2)
+        {
+            cout << "Play back failed." << endl;
+            display();
+            return 0;
+        }
+        play(move, pre);
     }
     return 0;
 }
