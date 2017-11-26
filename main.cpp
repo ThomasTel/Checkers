@@ -133,8 +133,9 @@ pair<int, vector<Move>> f(int p, int pr, bool multipleMoves=false)
             val.first *= -1;
         if(val.first > best.first)
         {
-            if(nextMultipleMoves)
-                val.second.insert(val.second.begin(), move); 
+            if(!nextMultipleMoves)
+                val.second = {};
+            val.second.insert(val.second.begin(), move);
             best = val;
         }
         play(move, pre, taken);
