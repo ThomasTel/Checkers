@@ -1,4 +1,5 @@
 #include <bits/stdc++.h>
+#include <time.h>
 
 using namespace std;
 
@@ -6,10 +7,11 @@ const int N = 8;
 const int TAKE_TYPE = 2;
 const int delta[][2] = {{-1,-1}, {-1,1}, {-2,-2}, {-2,2}};
 const string vals = "Bb_wW";
-const int P_MAX = 9;
+int P_MAX = 7;
 const int NOT_ZERO = 42;
 const int INF = 1e9;
 const pair<int, int> NO_MULTIPLE = {-1, -1};
+const double t_max = 20;
 
 struct Move
 {
@@ -132,6 +134,17 @@ int eval(int p)
     return -X * distSum + Y * cnt / p;
 }
 
+int hashT()
+{
+    const int M = 222222227;
+    int r = 0;
+    for(int i=0, h=1; i<N; i++)
+        for(int j=0; j<N; j++, h=(h*vals.size())%M)
+            r = (r + (t[i][j]+2)*h) % M;
+    return r;
+}
+
+map<int, pair<int, vector<Move>>> mem;
 int nbExplored;
 pair<int, vector<Move>> f(int p, int pr, pair<int, int> multipleMoves=NO_MULTIPLE, int alpha=-INF, int beta=INF)
 {
@@ -184,18 +197,15 @@ void display()
     cerr << endl;
 }
 
-int hashT()
+double timeElapsed()
 {
-    const int M = 222222227;
-    int r = 0;
-    for(int i=0, h=1; i<N; i++)
-        for(int j=0; j<N; j++, h=(h*vals.size())%M)
-            r = (r + (t[i][j]+2)*h) % M;
-    return r;
+    static clock_t start = clock();
+    return (clock() - start)/(CLOCKS_PER_SEC/1000);
 }
 
 int main()
 {
+    timeElapsed();
     ios_base::sync_with_stdio(false);
     string x; int n;
     cin >> x >> n;
@@ -208,7 +218,14 @@ int main()
                 if(s[i][j] == vals[k])
                     t[i][j] = k-2;
     int p = x[0] == 'w' ? 1 : -1;
-    vector<Move> moves = f(p, 0).second;
+    vector<Move> moves;
+    do
+    {
+        nbExplored = 0;
+        moves = f(p, 0).second;
+        P_MAX++;
+    }
+    while(timeElapsed() < t_max);
     cout << moves.size() << endl;
     for(auto move : moves)
         cout << move.lin << " " << move.col << endl;
