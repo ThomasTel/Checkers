@@ -9,6 +9,7 @@ const string vals = "Bb_wW";
 const int P_MAX = 4;
 const int NOT_ZERO = 42;
 const int INF = 1e9;
+const pair<int, int> NO_MULTIPLE = {-1, -1};
 
 struct Move
 {
@@ -59,13 +60,16 @@ bool playable(Move m)
     return true;
 }
 
-vector<Move> getMoves(int p)
+vector<Move> getMoves(int p, const pair<int, int>& last)
 {
     vector<Move> moves;
     for(int take=TAKE_TYPE; take>=0; take-=2)
     {
         for(int lin=0; lin<N; lin++)
             for(int col=0; col<N; col++)
+            {
+                if(last != NO_MULTIPLE && make_pair(lin, col) != last)
+                    continue;
                 if(t[lin][col]*p > 0)
                     for(int coeff=1; coeff>=-1; coeff-=4-abs(t[lin][col])) //queen: 1, -1
                         for(int dir=take; dir<take+2; dir++) //2,3 then 0,1
@@ -74,8 +78,11 @@ vector<Move> getMoves(int p)
                             if(playable(move))
                                 moves.push_back(move);
                         }
+            }
         if(moves.size())
             return moves;
+        if(last != NO_MULTIPLE)
+            return {};
     }
     return moves;
 }
@@ -108,16 +115,15 @@ int eval(int p)
 }
 
 int nbExplored;
-pair<int, vector<Move>> f(int p, int pr, bool multipleMoves=false)
+pair<int, vector<Move>> f(int p, int pr, pair<int, int> multipleMoves=NO_MULTIPLE)
 {
     nbExplored++;
-    //debug
-    if(pr == 1) //P_MAX)
+    if(pr == P_MAX)
         return {eval(p), vector<Move>()};
-    auto moves = getMoves(p);
-    if(multipleMoves && moves[0].dir < TAKE_TYPE)
+    auto moves = getMoves(p, multipleMoves);
+    if(multipleMoves != NO_MULTIPLE && moves.empty())
     {
-        auto r = f(p*(-1), pr+1, false);
+        auto r = f(p*(-1), pr+1, NO_MULTIPLE);
         return {-r.first, vector<Move>()};
     }
     pair<int, vector<Move>> best = {-INF, vector<Move>()};
@@ -125,15 +131,17 @@ pair<int, vector<Move>> f(int p, int pr, bool multipleMoves=false)
     {
         int pre = t[move.lin][move.col];
         int taken = play(move, pre);
-        int nextP = p, nextPr = pr, nextMultipleMoves=true;
+        int nextP = p, nextPr = pr;
+        pair<int, int> nextMultipleMoves;
+        newPos(move, p, nextMultipleMoves.first, nextMultipleMoves.second);
         if(move.dir < TAKE_TYPE)
-            nextP *= -1, nextPr++, nextMultipleMoves=false;
+            nextP *= -1, nextPr++, nextMultipleMoves=NO_MULTIPLE;
         auto val = f(nextP, nextPr, nextMultipleMoves);
         if(move.dir < TAKE_TYPE)
             val.first *= -1;
         if(val.first > best.first)
         {
-            if(!nextMultipleMoves)
+            if(nextMultipleMoves == NO_MULTIPLE)
                 val.second = {};
             val.second.insert(val.second.begin(), move);
             best = val;
