@@ -4,7 +4,6 @@ using namespace std;
 
 const int N = 8;
 const int TAKE_TYPE = 2;
-const int N_DIRS = 4;
 const int delta[][2] = {{-1,-1}, {-1,1}, {-2,-2}, {-2,2}};
 const string vals = "Bb_wW";
 const int P_MAX = 4;
@@ -60,20 +59,24 @@ bool playable(Move m)
     return true;
 }
 
-// /!\ game rule: force to take a rival piece if there is a possibility
 vector<Move> getMoves(int p)
 {
     vector<Move> moves;
-    for(int lin=0; lin<N; lin++)
-        for(int col=0; col<N; col++)
-            if(t[lin][col]*p > 0)
-                for(int coeff=1; coeff>=-1; coeff-=4-abs(t[lin][col])) //queen: 1, -1
-                    for(int dir=0; dir<N_DIRS; dir++)
-                    {
-                        Move move(lin, col, dir, coeff);
-                        if(playable(move))
-                            moves.push_back(move);
-                    }
+    for(int take=TAKE_TYPE; take>=0; take-=2)
+    {
+        for(int lin=0; lin<N; lin++)
+            for(int col=0; col<N; col++)
+                if(t[lin][col]*p > 0)
+                    for(int coeff=1; coeff>=-1; coeff-=4-abs(t[lin][col])) //queen: 1, -1
+                        for(int dir=take; dir<take+2; dir++) //2,3 then 0,1
+                        {
+                            Move move(lin, col, dir, coeff);
+                            if(playable(move))
+                                moves.push_back(move);
+                        }
+        if(moves.size())
+            return moves;
+    }
     return moves;
 }
 
@@ -105,24 +108,35 @@ int eval(int p)
 }
 
 int nbExplored;
-pair<int, Move> f(int p, int pr)
+pair<int, vector<Move>> f(int p, int pr, bool multipleMoves=false)
 {
     nbExplored++;
     //debug
     if(pr == 1) //P_MAX)
-        return {eval(p), Move()};
+        return {eval(p), vector<Move>()};
     auto moves = getMoves(p);
-    /*for(auto move : moves)
-        cout << move;
-    cout << endl;*/
-    pair<int, Move> best = {-INF, Move()};
+    if(multipleMoves && moves[0].dir < TAKE_TYPE)
+    {
+        auto r = f(p*(-1), pr+1, false);
+        return {-r.first, vector<Move>()};
+    }
+    pair<int, vector<Move>> best = {-INF, vector<Move>()};
     for(auto move : moves)
     {
         int pre = t[move.lin][move.col];
         int taken = play(move, pre);
-        pair<int, Move> val = {-f(p*(-1), pr+1).first, move};
+        int nextP = p, nextPr = pr, nextMultipleMoves=true;
+        if(move.dir < TAKE_TYPE)
+            nextP *= -1, nextPr++, nextMultipleMoves=false;
+        auto val = f(nextP, nextPr, nextMultipleMoves);
+        if(move.dir < TAKE_TYPE)
+            val.first *= -1;
         if(val.first > best.first)
+        {
+            if(nextMultipleMoves)
+                val.second.insert(val.second.begin(), move); 
             best = val;
+        }
         play(move, pre, taken);
     }
     return best;
@@ -163,10 +177,11 @@ int main()
                 if(s[i][j] == vals[k])
                     t[i][j] = k-2;
     int p = x[0] == 'w' ? 1 : -1;
-    Move move = f(p, 0).second;
-    cout << 1 << endl;
-    cout << move.lin << " " << move.col << endl;
-    int lin, col; newPos(move, t[move.lin][move.col], lin, col);
+    vector<Move> moves = f(p, 0).second;
+    cout << moves.size() << endl;
+    for(auto move : moves)
+        cout << move.lin << " " << move.col << endl;
+    int lin, col; newPos(moves.back(), p, lin, col);
     cout << lin << " " << col << endl;
     /*for(int i=0; i<10; i++, p*=-1)
     {
