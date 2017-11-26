@@ -133,7 +133,8 @@ pair<int, vector<Move>> f(int p, int pr, pair<int, int> multipleMoves=NO_MULTIPL
         int taken = play(move, pre);
         int nextP = p, nextPr = pr;
         pair<int, int> nextMultipleMoves;
-        newPos(move, p, nextMultipleMoves.first, nextMultipleMoves.second);
+        Move move_ = move;
+        newPos(move_, p, nextMultipleMoves.first, nextMultipleMoves.second);
         if(move.dir < TAKE_TYPE)
             nextP *= -1, nextPr++, nextMultipleMoves=NO_MULTIPLE;
         auto val = f(nextP, nextPr, nextMultipleMoves);
